@@ -17,6 +17,8 @@ import {
   Send,
   Plus,
   ArrowDownToLine,
+  Download,
+  Check,
 } from "lucide-react"
 import { useSuite } from "@/components/suite-context"
 import { MODELS, streamMessage } from "@/lib/ai-service"
@@ -43,6 +45,8 @@ export function WordApp() {
   const [prompt, setPrompt] = useState("")
   const [busy, setBusy] = useState(false)
   const [tab, setTab] = useState<"chat" | "writer">("chat")
+  const [downloadOpen, setDownloadOpen] = useState(false)
+  const [downloaded, setDownloaded] = useState(false)
 
   // chat state
   const [chat, setChat] = useState<ChatMsg[]>([])
@@ -104,6 +108,64 @@ export function WordApp() {
     el.innerHTML = (el.innerHTML || "") + html
     setDocContent(el.innerHTML)
     el.scrollIntoView({ block: "end" })
+  }
+
+  const safeName = () => (docTitle.trim() || "Untitled Document").replace(/[^\w\s-]/g, "").trim() || "document"
+
+  const triggerDownload = (blob: Blob, ext: string) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${safeName()}.${ext}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    setDownloadOpen(false)
+    setDownloaded(true)
+    setTimeout(() => setDownloaded(false), 2000)
+  }
+
+  const downloadDoc = () => {
+    const body = editorRef.current?.innerHTML ?? docContent
+    const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${safeName()}</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;color:#1a1a1a;max-width:760px;margin:40px auto;padding:0 24px;}h1{font-size:20pt;}ul,ol{padding-left:24px;}</style></head><body><h1>${safeName()}</h1>${body}</body></html>`
+    triggerDownload(new Blob([html], { type: "application/msword" }), "doc")
+  }
+
+  const downloadHtml = () => {
+    const body = editorRef.current?.innerHTML ?? docContent
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${safeName()}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.6;color:#1a1a1a;max-width:740px;margin:48px auto;padding:0 24px;}ul,ol{padding-left:24px;}</style></head><body>${body}</body></html>`
+    triggerDownload(new Blob([html], { type: "text/html" }), "html")
+  }
+
+  const downloadTxt = () => {
+    const text = editorRef.current?.innerText ?? ""
+    triggerDownload(new Blob([text], { type: "text/plain" }), "txt")
+  }
+
+  const downloadMd = () => {
+    // Lightweight HTML → Markdown for headings, lists, bold/italic and paragraphs.
+    const el = editorRef.current
+    const src = el?.innerHTML ?? docContent
+    const md = src
+      .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
+      .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
+      .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n")
+      .replace(/<(strong|b)>(.*?)<\/\1>/gi, "**$2**")
+      .replace(/<(em|i)>(.*?)<\/\1>/gi, "_$2_")
+      .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
+      .replace(/<\/(ul|ol)>/gi, "\n")
+      .replace(/<(ul|ol)[^>]*>/gi, "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+    triggerDownload(new Blob([md], { type: "text/markdown" }), "md")
   }
 
   const writeForMe = async () => {
@@ -181,6 +243,43 @@ export function WordApp() {
                 </button>
               )
             })}
+          </div>
+
+          {/* Download */}
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setDownloadOpen((o) => !o)}
+              onBlur={() => setTimeout(() => setDownloadOpen(false), 150)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                downloaded
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              {downloaded ? <Check className="size-3.5" /> : <Download className="size-3.5" />}
+              {downloaded ? "Saved" : "Download"}
+            </button>
+            {downloadOpen && (
+              <div className="absolute right-0 top-full z-20 mt-1.5 w-44 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-2xl shadow-black/40">
+                {[
+                  { label: "Word (.doc)", hint: "Microsoft Word", fn: downloadDoc },
+                  { label: "Web page (.html)", hint: "Formatted HTML", fn: downloadHtml },
+                  { label: "Markdown (.md)", hint: "Plain markup", fn: downloadMd },
+                  { label: "Plain text (.txt)", hint: "Text only", fn: downloadTxt },
+                ].map((opt) => (
+                  <button
+                    key={opt.label}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={opt.fn}
+                    className="flex w-full flex-col items-start px-3 py-1.5 text-left transition-colors hover:bg-accent"
+                  >
+                    <span className="text-sm text-foreground">{opt.label}</span>
+                    <span className="text-[11px] text-muted-foreground">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

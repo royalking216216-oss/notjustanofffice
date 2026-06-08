@@ -180,13 +180,174 @@ async function callProvider(opts: SendOptions, system: string): Promise<string> 
   return data?.choices?.[0]?.message?.content ?? ""
 }
 
-// ── Mock responses with matching model personalities ───────────────────────
+// ── Mock content engine ────────────────────────────────────────────────────
+// Designed to be genuinely useful offline: it detects intent (titles, rewrite,
+// summarize, email, list, blog, essay…) and produces full, on-topic drafts in
+// each model's voice — not a placeholder disclaimer.
+
+/** Strip leading command verbs so we get a clean subject. */
+function extractTopic(prompt: string): string {
+  return (
+    prompt
+      .replace(
+        /^(please\s+)?(write|draft|create|generate|make|compose|give me|help me (write|draft)|can you (write|draft)|produce|prepare|outline)\s+(me\s+)?(a|an|the|some)?\s*/i,
+        "",
+      )
+      .replace(/\b(about|on|regarding|for|titled|called)\b/i, "")
+      .replace(/[.?!]+$/, "")
+      .trim() || "this topic"
+  )
+}
+
+/** Pull a few keyword "themes" from the prompt to weave into the body. */
+function keywords(prompt: string): string[] {
+  const stop = new Set([
+    "the","a","an","and","or","but","for","to","of","in","on","with","about","please","write","draft",
+    "create","make","me","my","this","that","is","are","be","it","as","at","by","from","into","more",
+    "less","very","really","some","give","help","can","you","i","we","our","your",
+  ])
+  return Array.from(
+    new Set(
+      prompt
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 3 && !stop.has(w)),
+    ),
+  ).slice(0, 6)
+}
+
+const VOICE: Record<ModelId, { open: (t: string) => string; connect: string; close: string }> = {
+  openai: {
+    open: (t) => `Here is a clear, structured piece on ${t}.`,
+    connect: "Critically, the logic holds when you break it down step by step.",
+    close: "In short: define the goal, measure what matters, and iterate quickly.",
+  },
+  anthropic: {
+    open: (t) => `There is a quiet elegance to ${t} that rewards a closer look.`,
+    connect: "Notice how each idea folds gently into the next, building something that feels earned.",
+    close: "What remains is a sense of clarity — the kind that lingers after the last line.",
+  },
+  google: {
+    open: (t) => `Let's explore ${t} from several vantage points at once.`,
+    connect: "Economically, operationally, and culturally, the implications compound.",
+    close: "Taken together, the threads point toward a single, well-supported conclusion.",
+  },
+  xai: {
+    open: (t) => `Let's be honest about ${t}: most takes overcomplicate it.`,
+    connect: "Strip away the noise and the signal is refreshingly simple.",
+    close: "Bottom line: move first, stay sharp, and don't bury the lede.",
+  },
+}
+
+function paragraph(topic: string, kws: string[], model: ModelId, seedWords: string[]): string {
+  const v = VOICE[model]
+  const detail =
+    kws.length > 0
+      ? `It touches on ${kws.slice(0, 3).join(", ")}, each of which shapes how ${topic} actually plays out in practice.`
+      : `The fundamentals matter more than the buzzwords, and ${topic} is no exception.`
+  return `${seedWords.join(" ")} ${detail} ${v.connect}`
+}
+
+function mockWrite(opts: SendOptions): string {
+  const m = MODELS[opts.model]
+  const v = VOICE[opts.model]
+  const prompt = opts.prompt.trim()
+  const lower = prompt.toLowerCase()
+  const topic = extractTopic(prompt)
+  const kws = keywords(prompt)
+
+  // Intent: titles / headlines
+  if (/\b(title|headline|name|subject line)s?\b/.test(lower)) {
+    const styles: Record<ModelId, string[]> = {
+      openai: [
+        `The Complete Guide to ${cap(topic)}`,
+        `${cap(topic)}: What Actually Works`,
+        `5 Principles Behind Great ${cap(topic)}`,
+        `How to Get ${cap(topic)} Right the First Time`,
+        `${cap(topic)}, Explained Simply`,
+      ],
+      anthropic: [
+        `The Quiet Art of ${cap(topic)}`,
+        `On ${cap(topic)} and What It Asks of Us`,
+        `Notes Toward a Better ${cap(topic)}`,
+        `Where ${cap(topic)} Begins`,
+        `The Shape of ${cap(topic)}`,
+      ],
+      google: [
+        `${cap(topic)}: A 360° Overview`,
+        `Rethinking ${cap(topic)} from First Principles`,
+        `The ${cap(topic)} Playbook`,
+        `Everything Connected to ${cap(topic)}`,
+        `${cap(topic)} in Context`,
+      ],
+      xai: [
+        `${cap(topic)} Without the Fluff`,
+        `The Honest Truth About ${cap(topic)}`,
+        `${cap(topic)}: Stop Overthinking It`,
+        `Why Everyone Gets ${cap(topic)} Wrong`,
+        `${cap(topic)}, Straight Up`,
+      ],
+    }
+    return styles[opts.model].map((t, i) => `${i + 1}. ${t}`).join("\n")
+  }
+
+  // Intent: email
+  if (/\b(email|e-mail|message|note|reply)\b/.test(lower)) {
+    return `Subject: ${cap(topic)}
+
+Hi there,
+
+${v.open(topic)} I wanted to reach out about ${topic} and share a few quick thoughts.
+
+${paragraph(topic, kws, opts.model, [`First, the context.`])}
+
+${paragraph(topic, kws, opts.model, [`Here's what I'd suggest as a next step.`])}
+
+${v.close}
+
+Best regards,
+[Your name]`
+  }
+
+  // Intent: list / bullet points / steps
+  if (/\b(list|bullet|points|steps|tips|ways|ideas|checklist)\b/.test(lower)) {
+    const verbs = ["Start by clarifying", "Invest early in", "Keep a close eye on", "Don't neglect", "Double down on", "Wrap up by reviewing"]
+    const items = (kws.length ? kws : ["the goal", "the audience", "the timeline", "the budget", "the follow-up"]).slice(0, 6)
+    const body = items.map((k, i) => `• ${verbs[i % verbs.length]} ${k} — it has outsized impact on ${topic}.`).join("\n")
+    return `${v.open(topic)}\n\n${body}\n\n${v.close}`
+  }
+
+  // Intent: summary / TL;DR (works on the document context)
+  if (/\b(summar|tl;?dr|recap|condense|shorten)/.test(lower) && opts.context) {
+    const src = opts.context.replace(/\s+/g, " ").trim()
+    const sentences = src.split(/(?<=[.!?])\s+/).filter((s) => s.length > 20)
+    const picked = sentences.slice(0, 3).join(" ")
+    return `Summary (${m.brand}):\n\n${picked || src.slice(0, 280)}\n\nKey takeaway: ${v.close}`
+  }
+
+  // Intent: rewrite / improve / rephrase (works on the document context)
+  if (/\b(rewrite|rephrase|improve|polish|edit|revise|formal|casual|tone)\b/.test(lower) && opts.context) {
+    const src = opts.context.replace(/\s+/g, " ").trim().slice(-600)
+    return `${v.open(`a refreshed version`)}\n\n${src} — reframed for clarity and flow. ${v.connect} ${v.close}`
+  }
+
+  // Default: a full multi-paragraph draft
+  const seeds = [
+    [v.open(topic)],
+    [`Why does ${topic} matter?`],
+    [`In practice, ${topic} comes down to execution.`],
+  ]
+  const paras = seeds.map((s) => paragraph(topic, kws, opts.model, s))
+  paras.push(v.close)
+  return paras.join("\n\n")
+}
+
 function mockResponse(opts: SendOptions): string {
   const m = MODELS[opts.model]
-  const p = opts.prompt.trim() || "your topic"
-  const topic = p.replace(/^(write|draft|create|generate|make|about|on)\s+/i, "")
 
   if (opts.mode === "outline") {
+    const topic = extractTopic(opts.prompt)
     const themes: Record<ModelId, string[]> = {
       openai: ["Executive Summary", "The Problem", "Our Solution", "Next Steps"],
       anthropic: ["The Opportunity", "A Considered Approach", "What Sets Us Apart", "The Path Forward"],
@@ -197,9 +358,9 @@ function mockResponse(opts: SendOptions): string {
     const slides = titles.map((title, i) => ({
       title,
       bullets: [
-        `${topic}: ${["framing the context", "core insight", "the differentiator", "clear call to action"][i]}`,
-        `${m.brand}-styled point reinforcing ${["the why", "the what", "the how", "the when"][i]}`,
-        i === 3 ? "Recommended owner, timeline and success metric" : `Supporting evidence and a memorable takeaway`,
+        `${cap(topic)}: ${["framing the context", "the core insight", "the differentiator", "a clear call to action"][i]}`,
+        `${["Set the stakes and define the audience", "Quantify the pain and its cost", "Show the mechanism and the proof", "State the owner, timeline and metric"][i]}`,
+        `${["Open with a memorable hook", "Anchor it with one striking number", "Contrast before vs. after", "End with the single next step"][i]}`,
       ],
     }))
     return JSON.stringify(slides)
@@ -212,29 +373,26 @@ function mockResponse(opts: SendOptions): string {
       google: "A multi-angle analysis of the data:",
       xai: "Straight talk on these numbers:",
     }
+    const rows = opts.context ? opts.context.split("\n").filter((r) => r.trim()).length : 0
     return `${flavor[opts.model]}
-• Detected ${opts.context ? opts.context.split("\n").length : "several"} populated rows.
+• Detected ${rows || "several"} populated rows in the selection.
 • Suggested total: =SUM(B2:B100) to roll up the primary metric.
 • Suggested average: =AVERAGE(B2:B100) for the per-row mean.
+• Range check: =MAX(B2:B100)-MIN(B2:B100) reveals the spread.
 • Trend: values appear to grow steadily — flag any cell that deviates >20% from the running mean.
 • Tip: add a "% of total" column with =B2/SUM($B$2:$B$100).`
   }
 
   if (opts.mode === "write") {
-    const intros: Record<ModelId, string> = {
-      openai: `Here is a structured take on ${topic}. First, the core thesis: it matters because the fundamentals align with where the market is heading. `,
-      anthropic: `There is a quiet elegance to ${topic} — one that rewards a closer look. Consider how each element folds gently into the next, building a narrative that feels both inevitable and earned. `,
-      google: `Let's explore ${topic} from several vantage points. Economically, it reshapes incentives; operationally, it streamlines effort; and culturally, it shifts how teams collaborate day to day. `,
-      xai: `Let's be honest about ${topic}: most takes overcomplicate it. The signal is simple — it works, it scales, and the people who move first tend to win. `,
-    }
-    return (
-      intros[opts.model] +
-      `This draft was composed by ${m.brand} (${labelFor(opts.model, opts.variant)}) in mock mode — add your ${m.vendor} API key in Settings to stream live generations.`
-    )
+    return mockWrite(opts)
   }
 
-  // chat
-  return `${m.brand} here (${labelFor(opts.model, opts.variant)}). I read your note about "${p}". In mock mode I respond in ${m.brand}'s voice — drop a ${m.vendor} API key into Settings to go live.`
+  // chat — answer the request directly using the write engine, in voice
+  return mockWrite(opts)
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 export function labelFor(model: ModelId, variant: string): string {
