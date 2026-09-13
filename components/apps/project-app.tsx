@@ -16,7 +16,7 @@ const seedTasks: ProjectTask[] = [
 ]
 
 export function ProjectApp() {
-  const { activeModel, variants, apiKeys, projectTasks, setProjectTasks, updateProjectTask } = useSuite()
+  const { activeModel, variants, projectTasks, setProjectTasks, updateProjectTask } = useSuite()
   const [brief, setBrief] = useState("Plan a premium launch for our next product release")
   const [view, setView] = useState<"gantt" | "tasks" | "resources">("gantt")
   const [busy, setBusy] = useState(false)
@@ -26,7 +26,7 @@ export function ProjectApp() {
 
   const plan = async () => {
     setBusy(true); setNotice("")
-    const raw = await streamMessage({ model: activeModel, variant: variants[activeModel], apiKeys, mode: "plan", prompt: brief }, () => {})
+    const raw = await streamMessage({ model: activeModel, variant: variants[activeModel], mode: "plan", prompt: brief }, () => {})
     try {
       const parsed = JSON.parse(raw) as ProjectTask[]
       setProjectTasks(parsed)

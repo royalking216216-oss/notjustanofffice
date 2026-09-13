@@ -40,7 +40,7 @@ const TOOLS = [
 type ChatMsg = { role: "user" | "assistant"; content: string }
 
 export function WordApp() {
-  const { docContent, setDocContent, docTitle, setDocTitle, activeModel, variants, apiKeys } = useSuite()
+  const { docContent, setDocContent, docTitle, setDocTitle, activeModel, variants } = useSuite()
   const editorRef = useRef<HTMLDivElement>(null)
   const savedRange = useRef<Range | null>(null)
   const [prompt, setPrompt] = useState("")
@@ -205,7 +205,6 @@ export function WordApp() {
       {
         model: activeModel,
         variant: variants[activeModel],
-        apiKeys,
         mode: "write",
         prompt: prompt || "Continue writing this document naturally.",
         context,
@@ -227,7 +226,6 @@ export function WordApp() {
       {
         model: activeModel,
         variant: variants[activeModel],
-        apiKeys,
         mode: "chat",
         prompt: message,
         context: context ? `Current document:\n${context}` : undefined,

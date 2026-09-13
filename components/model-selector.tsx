@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Brain, PenLine, Sparkles, Zap, Check, ChevronDown } from "lucide-react"
 import { useSuite } from "@/components/suite-context"
-import { MODELS, MODEL_ORDER, type ModelId, hasKey } from "@/lib/ai-service"
+import { MODELS, MODEL_ORDER, type ModelId } from "@/lib/ai-service"
 import { cn } from "@/lib/utils"
 
 const ICONS: Record<ModelId, typeof Brain> = {
@@ -14,7 +14,7 @@ const ICONS: Record<ModelId, typeof Brain> = {
 }
 
 export function ModelSelector() {
-  const { activeModel, setActiveModel, variants, setVariant, apiKeys } = useSuite()
+  const { activeModel, setActiveModel, variants, setVariant } = useSuite()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -88,12 +88,10 @@ export function ModelSelector() {
                     <span
                       className={cn(
                         "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                        hasKey(id, apiKeys)
-                          ? "bg-emerald-500/15 text-emerald-400"
-                          : "bg-muted text-muted-foreground",
+                        "bg-sky-500/15 text-sky-300",
                       )}
                     >
-                      {hasKey(id, apiKeys) ? "Live" : "Mock"}
+                      Backend
                     </span>
                     {isActive && <Check className="size-4" style={{ color: m.accent }} />}
                   </button>

@@ -8,7 +8,7 @@ import { MODEL_ICONS } from "@/components/model-selector"
 import { cn } from "@/lib/utils"
 
 export function SlideApp() {
-  const { slides, setSlides, activeSlide, setActiveSlide, updateSlide, activeModel, variants, apiKeys } = useSuite()
+  const { slides, setSlides, activeSlide, setActiveSlide, updateSlide, activeModel, variants } = useSuite()
   const [prompt, setPrompt] = useState("")
   const [busy, setBusy] = useState(false)
 
@@ -23,7 +23,6 @@ export function SlideApp() {
     const full = await streamMessage({
       model: activeModel,
       variant: variants[activeModel],
-      apiKeys,
       mode: "outline",
       prompt: prompt || "A corporate strategy overview",
     })
