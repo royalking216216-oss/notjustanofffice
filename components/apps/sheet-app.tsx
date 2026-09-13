@@ -200,7 +200,7 @@ export function SheetApp() {
             <Icon className="size-4" />
           </span>
           <div className="leading-tight">
-            <div className="text-sm font-medium">AI Analyst</div>
+            <div className="text-sm font-medium">{m.brand} Analyst</div>
             <div className="text-[11px] text-muted-foreground">{m.brand} · {variantLabel}</div>
           </div>
         </div>

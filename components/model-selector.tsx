@@ -45,7 +45,7 @@ export function ModelSelector() {
           <ActiveIcon className="relative size-4" />
         </span>
         <span className="hidden flex-col items-start leading-tight sm:flex">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Powered by</span>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Active AI model</span>
           <span className="font-medium text-foreground">
             {active.brand} · {MODELS[activeModel].variants.find((v) => v.id === variants[activeModel])?.label}
           </span>

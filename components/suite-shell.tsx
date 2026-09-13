@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Table2, Presentation, LayoutGrid, Settings, Sparkles } from "lucide-react"
+import { FileText, Table2, Presentation, LayoutGrid, Settings, Sparkles, Code2, CalendarDays } from "lucide-react"
 import { useSuite, type AppKey } from "@/components/suite-context"
 import { ModelSelector } from "@/components/model-selector"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -11,7 +11,9 @@ const NAV: { key: AppKey; label: string; sub: string; icon: typeof FileText; col
   { key: "home", label: "Home", sub: "Dashboard", icon: LayoutGrid, color: "#9aa0a6" },
   { key: "word", label: "notjustaword", sub: "Documents", icon: FileText, color: "#4285f4" },
   { key: "sheet", label: "notjustasheet", sub: "Spreadsheets", icon: Table2, color: "#34a853" },
-  { key: "slide", label: "notjustaslide", sub: "Presentations", icon: Presentation, color: "#fbbc04" },
+  { key: "slide", label: "notjustaslide", sub: "PowerPoint", icon: Presentation, color: "#fbbc04" },
+  { key: "project", label: "Project Premium Pro", sub: "Planning", icon: CalendarDays, color: "#a78bfa" },
+  { key: "code", label: "notjustacode", sub: "HTML + Preview", icon: Code2, color: "#67e8f9" },
 ]
 
 export function SuiteShell({ children }: { children: React.ReactNode }) {
