@@ -1,9 +1,22 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { type ModelId, type ApiKeys, EMPTY_KEYS, MODELS } from "@/lib/ai-service"
 
-export type AppKey = "home" | "word" | "sheet" | "slide"
+export type AppKey = "home" | "word" | "sheet" | "slide" | "code" | "project"
+
+export interface ProjectTask {
+  id: string
+  name: string
+  phase: string
+  owner: string
+  duration: number
+  start: string
+  status: string
+  dependency: string
+  milestone: boolean
+  description: string
+}
 
 export interface Slide {
   id: string
@@ -41,6 +54,11 @@ interface SuiteState {
   activeSlide: number
   setActiveSlide: (i: number) => void
   updateSlide: (i: number, patch: Partial<Slide>) => void
+
+  // ── Project Premium Pro ──
+  projectTasks: ProjectTask[]
+  setProjectTasks: (tasks: ProjectTask[]) => void
+  updateProjectTask: (id: string, patch: Partial<ProjectTask>) => void
 }
 
 const SuiteContext = createContext<SuiteState | null>(null)
@@ -66,6 +84,17 @@ export function SuiteProvider({ children }: { children: ReactNode }) {
   const [apiKeys, setApiKeys] = useState<ApiKeys>(EMPTY_KEYS)
   const [activeApp, setActiveApp] = useState<AppKey>("home")
 
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem("notjustanoffice-api-keys")
+      if (saved) setApiKeys({ ...EMPTY_KEYS, ...(JSON.parse(saved) as Partial<ApiKeys>) })
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    try { window.sessionStorage.setItem("notjustanoffice-api-keys", JSON.stringify(apiKeys)) } catch {}
+  }, [apiKeys])
+
   const [docContent, setDocContent] = useState<string>("")
   const [docTitle, setDocTitle] = useState<string>("Untitled document")
 
@@ -84,6 +113,11 @@ export function SuiteProvider({ children }: { children: ReactNode }) {
 
   const [slides, setSlides] = useState<Slide[]>(STARTER_SLIDES)
   const [activeSlide, setActiveSlide] = useState(0)
+  const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([])
+
+  const updateProjectTask = useCallback((id: string, patch: Partial<ProjectTask>) => {
+    setProjectTasks((prev) => prev.map((task) => (task.id === id ? { ...task, ...patch } : task)))
+  }, [])
 
   const setVariant = useCallback((m: ModelId, v: string) => {
     setVariants((prev) => ({ ...prev, [m]: v }))
@@ -133,6 +167,9 @@ export function SuiteProvider({ children }: { children: ReactNode }) {
         activeSlide,
         setActiveSlide,
         updateSlide,
+        projectTasks,
+        setProjectTasks,
+        updateProjectTask,
       }}
     >
       {children}

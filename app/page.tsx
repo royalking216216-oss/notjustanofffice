@@ -6,6 +6,8 @@ import { HomeDashboard } from "@/components/apps/home-dashboard"
 import { WordApp } from "@/components/apps/word-app"
 import { SheetApp } from "@/components/apps/sheet-app"
 import { SlideApp } from "@/components/apps/slide-app"
+import { ProjectApp } from "@/components/apps/project-app"
+import { CodeApp } from "@/components/apps/code-app"
 
 function Workspace() {
   const { activeApp } = useSuite()
@@ -16,6 +18,10 @@ function Workspace() {
       return <SheetApp />
     case "slide":
       return <SlideApp />
+    case "project":
+      return <ProjectApp />
+    case "code":
+      return <CodeApp />
     default:
       return <HomeDashboard />
   }

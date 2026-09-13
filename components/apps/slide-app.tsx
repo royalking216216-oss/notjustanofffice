@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Wand2, Plus, Trash2, Presentation } from "lucide-react"
+import { Loader2, Wand2, Plus, Trash2, Presentation, Upload, FilePlus2 } from "lucide-react"
 import { useSuite, type Slide } from "@/components/suite-context"
 import { MODELS, streamMessage } from "@/lib/ai-service"
 import { MODEL_ICONS } from "@/components/model-selector"
@@ -46,6 +46,30 @@ export function SlideApp() {
     setBusy(false)
   }
 
+  const importSlides = async (file: File) => {
+    const text = await file.text()
+    const blocks = text.split(/\n\s*---+\s*\n|\n\s*SLIDE\s+\d+\s*\n/i).map((block) => block.trim()).filter(Boolean)
+    const imported: Slide[] = blocks.map((block, i) => {
+      const lines = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+      return { id: `import-${Date.now()}-${i}`, title: lines[0]?.replace(/^#+\s*/, "") || `Imported slide ${i + 1}`, bullets: (lines.slice(1).map((line) => line.replace(/^[-*•]\s*/, "")).filter(Boolean).slice(0, 6)) }
+    }).filter((slide) => slide.bullets.length > 0)
+    if (imported.length) { setSlides([...slides, ...imported]); setActiveSlide(slides.length) }
+  }
+
+  const openPresentation = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".txt,.md,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    input.onchange = () => { const file = input.files?.[0]; if (file) void importSlides(file) }
+    input.click()
+  }
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const file = event.dataTransfer.files?.[0]
+    if (file) void importSlides(file)
+  }
+
   const addSlide = () => {
     const s: Slide = { id: `s-${Date.now()}`, title: "New slide", bullets: ["Add your point here"] }
     setSlides([...slides, s])
@@ -60,7 +84,7 @@ export function SlideApp() {
   }
 
   return (
-    <div className="flex h-full min-w-0">
+    <div className="flex h-full min-w-0" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
       {/* Thumbnail deck */}
       <div className="hidden w-44 shrink-0 flex-col gap-2 overflow-auto scroll-thin border-r border-border bg-sidebar p-3 lg:flex">
         {slides.map((s, i) => (
@@ -92,12 +116,16 @@ export function SlideApp() {
         >
           <Plus className="size-4" /> Add slide
         </button>
+        <button onClick={openPresentation} className="flex items-center justify-center gap-1 rounded-lg border border-border px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+          <Upload className="size-3.5" /> Import deck
+        </button>
       </div>
 
       {/* Canvas */}
       <div className="flex min-w-0 flex-1 items-center justify-center overflow-auto scroll-thin bg-background/50 p-6">
         {current && (
-          <div className="aspect-video w-full max-w-3xl rounded-2xl border border-border bg-card p-10 shadow-2xl shadow-black/30 lg:p-14">
+            <div className="aspect-video w-full max-w-3xl rounded-2xl border border-border bg-card p-10 shadow-2xl shadow-black/30 lg:p-14">
+              <div className="mb-3 flex items-center gap-1 text-[11px] text-muted-foreground"><FilePlus2 className="size-3.5" /> Drop a PPTX or text outline anywhere to append slides</div>
             <input
               value={current.title}
               onChange={(e) => updateSlide(activeSlide, { title: e.target.value })}
@@ -145,7 +173,7 @@ export function SlideApp() {
             <Icon className="size-4" />
           </span>
           <div className="leading-tight">
-            <div className="text-sm font-medium">Slide Copilot</div>
+            <div className="text-sm font-medium">{m.brand} Presentation Assistant</div>
             <div className="text-[11px] text-muted-foreground">{m.brand} · {variantLabel}</div>
           </div>
         </div>

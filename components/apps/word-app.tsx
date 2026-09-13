@@ -19,6 +19,7 @@ import {
   ArrowDownToLine,
   Download,
   Check,
+  FolderOpen,
 } from "lucide-react"
 import { useSuite } from "@/components/suite-context"
 import { MODELS, streamMessage } from "@/lib/ai-service"
@@ -143,6 +144,33 @@ export function WordApp() {
     triggerDownload(new Blob([text], { type: "text/plain" }), "txt")
   }
 
+  const importDocumentFile = async (file: File) => {
+    const text = await file.text()
+    const imported = file.type.includes("html") || /\.(html?|doc)$/i.test(file.name) ? text : `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>" )}</p>`
+    if (editorRef.current) editorRef.current.innerHTML = imported
+    setDocContent(imported)
+    setDocTitle(file.name.replace(/\.[^.]+$/, "") || "Imported document")
+  }
+
+  const handleDocumentDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const file = event.dataTransfer.files?.[0]
+    if (file) void importDocumentFile(file)
+  }
+
+  const openDocument = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".txt,.md,.html,.htm,.doc,.docx,text/plain,text/html,text/markdown"
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      const text = await file.text()
+      await importDocumentFile(file)
+    }
+    input.click()
+  }
+
   const downloadMd = () => {
     // Lightweight HTML → Markdown for headings, lists, bold/italic and paragraphs.
     const el = editorRef.current
@@ -216,7 +244,7 @@ export function WordApp() {
   }
 
   return (
-    <div className="flex h-full min-w-0">
+    <div className="flex h-full min-w-0" onDragOver={(event) => event.preventDefault()} onDrop={handleDocumentDrop}>
       {/* Document canvas */}
       <div className="flex min-w-0 flex-1 flex-col bg-background/50">
         {/* Floating formatting bar */}
@@ -227,6 +255,9 @@ export function WordApp() {
             className="mr-2 max-w-[180px] flex-1 truncate bg-transparent text-sm font-medium outline-none"
           />
           <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
+          <button onClick={openDocument} className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" aria-label="Open document">
+            <FolderOpen className="size-3.5" /> <span className="hidden sm:inline">Open</span>
+          </button>
           <div className="flex items-center gap-0.5">
             {TOOLS.map((t) => {
               const TI = t.icon
@@ -314,7 +345,7 @@ export function WordApp() {
             <Icon className="size-4" />
           </span>
           <div className="leading-tight">
-            <div className="text-sm font-medium">AI Copilot</div>
+            <div className="text-sm font-medium">{m.brand} Writer</div>
             <div className="text-[11px] text-muted-foreground">
               {m.brand} · {variantLabel}
             </div>

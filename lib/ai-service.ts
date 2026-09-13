@@ -6,7 +6,7 @@
 
 export type ModelId = "openai" | "anthropic" | "google" | "xai"
 
-export type TaskMode = "chat" | "write" | "analyze" | "outline"
+export type TaskMode = "chat" | "write" | "analyze" | "outline" | "plan"
 
 export interface ModelVariant {
   id: string
@@ -113,6 +113,8 @@ function buildSystemPrompt(model: ModelConfig, mode: TaskMode): string {
       return `${base} You are the spreadsheet Analyst. Read the provided grid and return a concise breakdown: trends, totals and any suggested formulas (use =SUM / =AVERAGE style).`
     case "outline":
       return `${base} You are the presentation Copilot. Produce a 4-slide corporate deck. Return STRICT JSON: an array of {"title": string, "bullets": string[]} with exactly 4 items.`
+    case "plan":
+      return `${base} You are Project Premium Pro Planner. Turn a project brief into a practical work breakdown with phases, dependencies, owners, durations, milestones, risks, and a clear next action. Return STRICT JSON: an array of task objects with id, name, phase, owner, duration, start, status, dependency, milestone, and description.`
     default:
       return base
   }
@@ -364,6 +366,44 @@ function mockResponse(opts: SendOptions): string {
       ],
     }))
     return JSON.stringify(slides)
+  }
+
+  if (opts.mode === "plan") {
+    const topic = cap(extractTopic(opts.prompt))
+    const owners = ["Product", "Design", "Engineering", "Marketing", "Operations", "Leadership"]
+    const phases = ["Initiation", "Planning", "Build", "Launch"]
+    const names = [
+      `Align on ${topic} goals`,
+      "Create project charter and success metrics",
+      "Map requirements and user journeys",
+      "Approve scope, budget, and timeline",
+      "Build the first working increment",
+      "Run quality review and stakeholder sign-off",
+      "Prepare launch communications and enablement",
+      "Launch, measure adoption, and retrospective",
+    ]
+    const tasks = names.map((name, i) => ({
+      id: `T${i + 1}`,
+      name,
+      phase: phases[Math.min(Math.floor(i / 2), phases.length - 1)],
+      owner: owners[i % owners.length],
+      duration: [2, 3, 5, 2, 10, 4, 5, 3][i],
+      start: `2026-10-${String(5 + i * 3).padStart(2, "0")}`,
+      status: i < 2 ? "In progress" : i === 2 ? "Ready" : "Not started",
+      dependency: i === 0 ? "" : `T${i}`,
+      milestone: [0, 3, 7].includes(i),
+      description: [
+        "Confirm the outcome, audience, and decision owners.",
+        "Document the baseline, target metrics, and approval path.",
+        "Translate the brief into testable requirements.",
+        "Lock the delivery baseline before execution begins.",
+        "Deliver the highest-value slice with a visible demo.",
+        "Resolve defects and collect final acceptance.",
+        "Give every team the assets and context to launch well.",
+        "Review outcomes, capture learning, and schedule follow-ups.",
+      ][i],
+    }))
+    return JSON.stringify(tasks)
   }
 
   if (opts.mode === "analyze") {

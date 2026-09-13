@@ -25,8 +25,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <div className="space-y-4 p-5">
           <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" />
-            Keys stay in your browser session only. Leave a field blank to keep that model in personality-matched mock
-            mode.
+            Keys are stored in this browser session and sent only to the selected provider. Leave a field blank for useful personality-matched mock mode. The active model name always appears in each app.
           </p>
 
           {MODEL_ORDER.map((id) => {
