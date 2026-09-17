@@ -97,7 +97,6 @@ export const EMPTY_KEYS: ApiKeys = {
 export interface SendOptions {
   model: ModelId
   variant: string
-  apiKeys: ApiKeys
   mode: TaskMode
   prompt: string
   /** Surrounding document / grid / deck context */
@@ -120,10 +119,8 @@ function buildSystemPrompt(model: ModelConfig, mode: TaskMode): string {
   }
 }
 
-// ── Real provider routing ──────────────────────────────────────────────────
-// Each vendor differs in base URL, auth headers and body shape. This is where
-// the universal router translates one request into the active vendor's dialect.
-async function callProvider(opts: SendOptions, system: string): Promise<string> {
+// Provider routing runs only in app/api/ai/route.ts so secrets never reach the browser.
+/* async function callProvider(opts: SendOptions, system: string): Promise<string> {
   const model = MODELS[opts.model]
   const key = opts.apiKeys[opts.model]
   const userContent = opts.context
@@ -180,7 +177,7 @@ async function callProvider(opts: SendOptions, system: string): Promise<string> 
   })
   const data = await res.json()
   return data?.choices?.[0]?.message?.content ?? ""
-}
+} */
 
 // ── Mock content engine ────────────────────────────────────────────────────
 // Designed to be genuinely useful offline: it detects intent (titles, rewrite,
@@ -345,7 +342,7 @@ Best regards,
   return paras.join("\n\n")
 }
 
-function mockResponse(opts: SendOptions): string {
+export function mockResponse(opts: SendOptions): string {
   const m = MODELS[opts.model]
 
   if (opts.mode === "outline") {
@@ -453,12 +450,13 @@ export async function streamMessage(
 
   let full: string
   try {
-    if (hasKey(opts.model, opts.apiKeys)) {
-      full = await callProvider(opts, system)
-      if (!full) full = mockResponse(opts)
-    } else {
-      full = mockResponse(opts)
-    }
+    const response = await fetch("/api/ai", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: opts.model, variant: opts.variant, mode: opts.mode, prompt: opts.prompt, context: opts.context }),
+    })
+    const data = (await response.json()) as { text?: string }
+    full = data.text || mockResponse(opts)
   } catch {
     full = mockResponse(opts)
   }

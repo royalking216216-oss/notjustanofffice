@@ -11,7 +11,7 @@ const COLS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
 const ROWS = Array.from({ length: 100 }, (_, i) => i + 1)
 
 export function SheetApp() {
-  const { cells, setCell, setCellsBulk, activeModel, variants, apiKeys } = useSuite()
+  const { cells, setCell, setCellsBulk, activeModel, variants } = useSuite()
   const [selected, setSelected] = useState("A1")
   const [editing, setEditing] = useState<string | null>(null)
   const [prompt, setPrompt] = useState("")
@@ -65,7 +65,6 @@ export function SheetApp() {
       {
         model: activeModel,
         variant: variants[activeModel],
-        apiKeys,
         mode: "analyze",
         prompt: prompt || "Analyze this grid and suggest formulas.",
         context: gridSnapshot(),

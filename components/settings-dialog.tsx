@@ -1,13 +1,8 @@
 "use client"
 
-import { X, KeyRound, ShieldCheck } from "lucide-react"
-import { useSuite } from "@/components/suite-context"
-import { MODELS, MODEL_ORDER } from "@/lib/ai-service"
-import { MODEL_ICONS } from "@/components/model-selector"
+import { X, KeyRound, ShieldCheck, AlertTriangle } from "lucide-react"
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
-  const { apiKeys, setApiKey } = useSuite()
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
@@ -23,36 +18,18 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="space-y-4 p-5">
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span><strong>Backend key warning:</strong> AI requests now go through <code>/api/ai</code>. Provider keys must be configured as server environment variables; browser-entered keys are no longer sent. Missing keys or provider errors automatically use Mock Mode.</span>
+          </div>
           <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" />
-            Keys are stored in this browser session and sent only to the selected provider. Leave a field blank for useful personality-matched mock mode. The active model name always appears in each app.
+            Keep provider secrets out of client storage. The active model name always appears in each app.
           </p>
 
-          {MODEL_ORDER.map((id) => {
-            const m = MODELS[id]
-            const Icon = MODEL_ICONS[id]
-            return (
-              <div key={id} className="space-y-1.5">
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <span
-                    className="flex size-6 items-center justify-center rounded-md"
-                    style={{ color: m.accent, background: `${m.accent}1a` }}
-                  >
-                    <Icon className="size-3.5" />
-                  </span>
-                  {m.vendor}
-                  <span className="text-xs font-normal text-muted-foreground">({m.brand})</span>
-                </label>
-                <input
-                  type="password"
-                  value={apiKeys[id]}
-                  onChange={(e) => setApiKey(id, e.target.value)}
-                  placeholder={`Enter ${m.vendor} API key…`}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-                />
-              </div>
-            )
-          })}
+          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            Configure <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_AI_API_KEY</code>, or <code>XAI_API_KEY</code> in the deployment environment. No provider secret is accepted from the browser.
+          </div>
         </div>
 
         <div className="flex justify-end border-t border-border px-5 py-3">
