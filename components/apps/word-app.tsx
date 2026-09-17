@@ -25,6 +25,8 @@ import { useSuite } from "@/components/suite-context"
 import { MODELS, streamMessage } from "@/lib/ai-service"
 import { MODEL_ICONS } from "@/components/model-selector"
 import { cn } from "@/lib/utils"
+import mammoth from "mammoth/mammoth.browser"
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx"
 
 const TOOLS = [
   { cmd: "bold", icon: Bold, label: "Bold" },
@@ -127,10 +129,26 @@ export function WordApp() {
     setTimeout(() => setDownloaded(false), 2000)
   }
 
-  const downloadDoc = () => {
+  const downloadDoc = async () => {
     const body = editorRef.current?.innerHTML ?? docContent
-    const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${safeName()}</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;color:#1a1a1a;max-width:760px;margin:40px auto;padding:0 24px;}h1{font-size:20pt;}ul,ol{padding-left:24px;}</style></head><body><h1>${safeName()}</h1>${body}</body></html>`
-    triggerDownload(new Blob([html], { type: "application/msword" }), "doc")
+    const source = document.createElement("div")
+    source.innerHTML = body
+    const paragraphs = Array.from(source.querySelectorAll("h1,h2,h3,p,li,div"))
+      .map((node) => {
+        const text = node.textContent?.trim() ?? ""
+        if (!text) return null
+        const heading = node.tagName.toLowerCase()
+        return new Paragraph({
+          heading: heading === "h1" ? HeadingLevel.HEADING_1 : heading === "h2" ? HeadingLevel.HEADING_2 : heading === "h3" ? HeadingLevel.HEADING_3 : undefined,
+          bullet: heading === "li" ? { level: 0 } : undefined,
+          children: [new TextRun(text)],
+          spacing: { after: 160 },
+        })
+      })
+      .filter((paragraph): paragraph is Paragraph => paragraph !== null)
+    const file = new Document({ sections: [{ children: [new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(safeName())] }), ...paragraphs] }] })
+    const blob = await Packer.toBlob(file)
+    triggerDownload(blob, "docx")
   }
 
   const downloadHtml = () => {
@@ -145,8 +163,14 @@ export function WordApp() {
   }
 
   const importDocumentFile = async (file: File) => {
-    const text = await file.text()
-    const imported = file.type.includes("html") || /\.(html?|doc)$/i.test(file.name) ? text : `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>" )}</p>`
+    let imported: string
+    if (/\.docx$/i.test(file.name) || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })
+      imported = result.value
+    } else {
+      const text = await file.text()
+      imported = file.type.includes("html") || /\.html?$/i.test(file.name) ? text : `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>" )}</p>`
+    }
     if (editorRef.current) editorRef.current.innerHTML = imported
     setDocContent(imported)
     setDocTitle(file.name.replace(/\.[^.]+$/, "") || "Imported document")
@@ -165,7 +189,6 @@ export function WordApp() {
     input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
-      const text = await file.text()
       await importDocumentFile(file)
     }
     input.click()
