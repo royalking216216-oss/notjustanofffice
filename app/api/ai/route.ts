@@ -3,7 +3,7 @@ import { MODELS, mockResponse, type ModelId, type SendOptions, type TaskMode } f
 
 export const runtime = "nodejs"
 
-type RequestBody = Omit<SendOptions, "apiKeys"> & { model: ModelId; mode: TaskMode }
+type RequestBody = Omit<SendOptions, "apiKeys"> & { model: ModelId; mode: TaskMode; apiKeys?: Partial<Record<ModelId, string>> }
 
 function systemPrompt(model: ModelId, mode: TaskMode) {
   const config = MODELS[model]
@@ -74,7 +74,8 @@ export async function POST(request: Request) {
   }
 
   const mockOptions: SendOptions = { model: body.model, variant: body.variant, mode: body.mode, prompt: body.prompt, context: body.context }
-  const key = keyFor(body.model)
+  const sessionKey = body.apiKeys?.[body.model]?.trim()
+  const key = sessionKey || keyFor(body.model)
   if (!key) {
     return NextResponse.json({ text: mockResponse(mockOptions), mode: "mock", warning: `${MODELS[body.model].vendor} API key is not configured. Using Mock Mode.` })
   }

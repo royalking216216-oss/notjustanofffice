@@ -8,7 +8,7 @@ import { MODEL_ICONS } from "@/components/model-selector"
 import { cn } from "@/lib/utils"
 
 export function SlideApp() {
-  const { slides, setSlides, activeSlide, setActiveSlide, updateSlide, activeModel, variants } = useSuite()
+  const { slides, setSlides, activeSlide, setActiveSlide, updateSlide, activeModel, variants, apiKeys } = useSuite()
   const [prompt, setPrompt] = useState("")
   const [busy, setBusy] = useState(false)
 
@@ -24,8 +24,9 @@ export function SlideApp() {
       model: activeModel,
       variant: variants[activeModel],
       mode: "outline",
-      prompt: prompt || "A corporate strategy overview",
-    })
+  prompt: prompt || "A corporate strategy overview",
+  apiKeys,
+  })
     let parsed: { title: string; bullets: string[] }[] = []
     try {
       const json = full.slice(full.indexOf("["), full.lastIndexOf("]") + 1)

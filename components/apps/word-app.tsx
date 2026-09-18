@@ -42,7 +42,7 @@ const TOOLS = [
 type ChatMsg = { role: "user" | "assistant"; content: string }
 
 export function WordApp() {
-  const { docContent, setDocContent, docTitle, setDocTitle, activeModel, variants } = useSuite()
+  const { docContent, setDocContent, docTitle, setDocTitle, activeModel, variants, apiKeys } = useSuite()
   const editorRef = useRef<HTMLDivElement>(null)
   const savedRange = useRef<Range | null>(null)
   const [prompt, setPrompt] = useState("")
@@ -230,8 +230,9 @@ export function WordApp() {
         variant: variants[activeModel],
         mode: "write",
         prompt: prompt || "Continue writing this document naturally.",
-        context,
-      },
+  context,
+  apiKeys,
+  },
       (_full, delta) => insertAtCursor(delta),
     )
     setBusy(false)

@@ -1,8 +1,11 @@
 "use client"
 
 import { X, KeyRound, ShieldCheck, AlertTriangle } from "lucide-react"
+import { useSuite } from "@/components/suite-context"
+import { MODELS, MODEL_ORDER } from "@/lib/ai-service"
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
+  const { apiKeys, setApiKey } = useSuite()
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
@@ -20,7 +23,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <div className="space-y-4 p-5">
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <span><strong>Backend key warning:</strong> AI requests now go through <code>/api/ai</code>. Provider keys must be configured as server environment variables; browser-entered keys are no longer sent. Missing keys or provider errors automatically use Mock Mode.</span>
+            <span><strong>Backend key warning:</strong> AI requests always go through <code>/api/ai</code>. Server environment variables are safest. Optional session-only keys below are forwarded only to this app&apos;s backend route, never directly to a provider. Missing keys or provider errors automatically use Mock Mode.</span>
           </div>
           <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" />
@@ -28,7 +31,26 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </p>
 
           <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            Configure <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_AI_API_KEY</code>, or <code>XAI_API_KEY</code> in the deployment environment. No provider secret is accepted from the browser.
+            Server keys are recommended. You can also add a session-only key below for this browser; it is sent only to your own <code>/api/ai</code> route and is cleared when this browser session ends.
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {MODEL_ORDER.map((id) => {
+              const model = MODELS[id]
+              return (
+                <label key={id} className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium">{model.vendor} <span className="text-xs text-muted-foreground">({model.brand})</span></span>
+                  <input
+                    type="password"
+                    value={apiKeys[id]}
+                    onChange={(event) => setApiKey(id, event.target.value)}
+                    placeholder={`Session-only ${model.vendor} API key`}
+                    autoComplete="off"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                  />
+                </label>
+              )
+            })}
           </div>
         </div>
 

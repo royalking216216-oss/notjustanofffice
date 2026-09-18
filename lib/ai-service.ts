@@ -95,12 +95,12 @@ export const EMPTY_KEYS: ApiKeys = {
 }
 
 export interface SendOptions {
+  prompt: string
   model: ModelId
   variant: string
-  mode: TaskMode
-  prompt: string
-  /** Surrounding document / grid / deck context */
+  mode?: TaskMode
   context?: string
+  apiKeys?: ApiKeys
 }
 
 function buildSystemPrompt(model: ModelConfig, mode: TaskMode): string {
@@ -446,14 +446,14 @@ export async function streamMessage(
   onChunk?: (full: string, delta: string) => void,
 ): Promise<string> {
   const model = MODELS[opts.model]
-  const system = buildSystemPrompt(model, opts.mode)
+  const system = buildSystemPrompt(model, opts.mode ?? "chat")
 
   let full: string
   try {
     const response = await fetch("/api/ai", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ model: opts.model, variant: opts.variant, mode: opts.mode, prompt: opts.prompt, context: opts.context }),
+      body: JSON.stringify({ model: opts.model, variant: opts.variant, mode: opts.mode, prompt: opts.prompt, context: opts.context, apiKeys: opts.apiKeys }),
     })
     const data = (await response.json()) as { text?: string }
     full = data.text || mockResponse(opts)
