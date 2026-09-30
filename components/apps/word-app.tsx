@@ -20,6 +20,8 @@ import {
   Download,
   Check,
   FolderOpen,
+  ShieldAlert,
+  LockKeyhole,
 } from "lucide-react"
 import { useSuite } from "@/components/suite-context"
 import { MODELS, streamMessage } from "@/lib/ai-service"
@@ -50,6 +52,8 @@ export function WordApp() {
   const [tab, setTab] = useState<"chat" | "writer">("chat")
   const [downloadOpen, setDownloadOpen] = useState(false)
   const [downloaded, setDownloaded] = useState(false)
+  const [securityWarning, setSecurityWarning] = useState<string | null>(null)
+  const [readOnly, setReadOnly] = useState(false)
 
   // chat state
   const [chat, setChat] = useState<ChatMsg[]>([])
@@ -81,12 +85,14 @@ export function WordApp() {
   }
 
   const exec = (cmd: string) => {
+    if (readOnly) return
     editorRef.current?.focus()
     document.execCommand(cmd, false)
     setDocContent(editorRef.current?.innerHTML ?? "")
   }
 
   const insertAtCursor = (text: string) => {
+    if (readOnly) return
     const el = editorRef.current
     if (!el) return
     el.focus()
@@ -102,6 +108,7 @@ export function WordApp() {
 
   // Append AI text to the end of the document (used by chat "Insert").
   const appendToDoc = (text: string) => {
+    if (readOnly) return
     const el = editorRef.current
     if (!el) return
     const html = text
@@ -162,15 +169,70 @@ export function WordApp() {
     triggerDownload(new Blob([text], { type: "text/plain" }), "txt")
   }
 
-  const importDocumentFile = async (file: File) => {
-    let imported: string
-    if (/\.docx$/i.test(file.name) || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })
-      imported = result.value
-    } else {
-      const text = await file.text()
-      imported = file.type.includes("html") || /\.html?$/i.test(file.name) ? text : `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>" )}</p>`
+  const inspectFile = async (file: File): Promise<{ suspicious: boolean; reason?: string; encrypted: boolean }> => {
+    const name = file.name.toLowerCase()
+    const encrypted = /\.(enc|encrypted|locked)$/i.test(name) || /encrypted/i.test(file.type)
+    if (encrypted) return { suspicious: true, encrypted: true, reason: "This file appears to be encrypted or locked. It was opened in read-only mode." }
+
+    if (/\.docx$/i.test(name) || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      const signature = new TextDecoder("latin1").decode(bytes)
+      if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+        return { suspicious: true, encrypted: false, reason: "This file does not have a valid DOCX container signature. It was opened in read-only mode." }
+      }
+      const indicators: Array<[RegExp, string]> = [
+        [/vbaProject\\.bin/i, "embedded VBA macro"],
+        [/activeX|oleObject|embeddings/i, "embedded executable object"],
+        [/externalLinks|TargetMode=\\"External\\"/i, "external link"],
+        [/encryptedPackage|EncryptionInfo|EncryptedPackage/i, "encrypted package"],
+        [/msi|\\.exe|\\.dll|powershell|wscript|cmd\\.exe/i, "executable or script reference"],
+      ]
+      const match = indicators.find(([pattern]) => pattern.test(signature))
+      if (match) return { suspicious: true, encrypted: /encrypt/i.test(match[1]), reason: `Potentially unsafe content detected: ${match[1]}. The document is read-only until you verify it.` }
     }
+
+    if (/\.(html?|svg)$/i.test(name) || file.type.includes("html") || file.type.includes("svg")) {
+      const text = await file.text()
+      if (/<script|javascript:|on[a-z]+\\s*=|<iframe|<object|<embed/i.test(text)) {
+        return { suspicious: true, encrypted: false, reason: "Active scripts or embedded content were detected. The document is read-only and unsafe markup will be removed." }
+      }
+    }
+    return { suspicious: false, encrypted: false }
+  }
+
+  const sanitizeImportedHtml = (html: string) => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, "text/html")
+    doc.querySelectorAll("script, iframe, object, embed, form, link, meta, style").forEach((node) => node.remove())
+    doc.querySelectorAll("*").forEach((node) => {
+      Array.from(node.attributes).forEach((attribute) => {
+        if (/^on/i.test(attribute.name) || /^(href|src)$/i.test(attribute.name) && /^(javascript|data):/i.test(attribute.value)) {
+          node.removeAttribute(attribute.name)
+        }
+      })
+    })
+    return doc.body.innerHTML
+  }
+
+  const importDocumentFile = async (file: File) => {
+    const inspection = await inspectFile(file)
+    setSecurityWarning(inspection.reason ?? null)
+    setReadOnly(inspection.suspicious)
+    let imported: string
+    try {
+      if (/\.docx$/i.test(file.name) || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })
+        imported = result.value
+      } else {
+        const text = await file.text()
+        imported = file.type.includes("html") || /\.html?$/i.test(file.name) ? text : `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>" )}</p>`
+      }
+    } catch {
+      setSecurityWarning("This file could not be safely parsed. It was opened in read-only mode.")
+      setReadOnly(true)
+      imported = `<p>Unable to safely render this file. Download it only after verifying its source.</p>`
+    }
+    imported = sanitizeImportedHtml(imported)
     if (editorRef.current) editorRef.current.innerHTML = imported
     setDocContent(imported)
     setDocTitle(file.name.replace(/\.[^.]+$/, "") || "Imported document")
@@ -220,7 +282,7 @@ export function WordApp() {
   }
 
   const writeForMe = async () => {
-    if (busy) return
+    if (readOnly || busy) return
     setBusy(true)
     saveSelection()
     const context = editorRef.current?.innerText?.slice(-1200) ?? ""
@@ -336,14 +398,25 @@ export function WordApp() {
           </div>
         </div>
 
+        {securityWarning && (
+          <div role="alert" className="flex items-start gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-400" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold">Security warning — read-only mode</p>
+              <p className="mt-0.5 text-xs leading-5 text-amber-100/70">{securityWarning} This is a heuristic safety check, not a guarantee that a file is malware-free. Verify the source before sharing or downloading it.</p>
+            </div>
+            <LockKeyhole className="size-3.5 shrink-0 text-amber-400/70" />
+          </div>
+        )}
+
         {/* Paper */}
         <div className="flex-1 overflow-auto scroll-thin px-4 py-8">
           <div className="mx-auto min-h-[60vh] w-full max-w-[760px] rounded-lg bg-card p-10 shadow-2xl shadow-black/30 ring-1 ring-border lg:p-16">
             <div
               ref={editorRef}
-              contentEditable
+              contentEditable={!readOnly}
               suppressContentEditableWarning
-              onInput={(e) => setDocContent((e.target as HTMLDivElement).innerHTML)}
+              onInput={(e) => { if (!readOnly) setDocContent((e.target as HTMLDivElement).innerHTML) }}
               onKeyUp={saveSelection}
               onMouseUp={saveSelection}
               data-placeholder="Start writing, or ask the AI to draft for you…"
