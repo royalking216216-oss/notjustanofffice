@@ -8,6 +8,7 @@ import { SheetApp } from "@/components/apps/sheet-app"
 import { SlideApp } from "@/components/apps/slide-app"
 import { ProjectApp } from "@/components/apps/project-app"
 import { CodeApp } from "@/components/apps/code-app"
+import { PdfApp } from "@/components/apps/pdf-app"
 
 function Workspace() {
   const { activeApp } = useSuite()
@@ -18,6 +19,8 @@ function Workspace() {
       return <SheetApp />
     case "slide":
       return <SlideApp />
+    case "pdf":
+      return <PdfApp />
     case "project":
       return <ProjectApp />
     case "code":
