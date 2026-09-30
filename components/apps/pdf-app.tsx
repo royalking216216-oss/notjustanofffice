@@ -37,6 +37,11 @@ export function PdfApp() {
   const [notes, setNotes] = useState<string[]>([])
   const [note, setNote] = useState("")
   const [isDropActive, setIsDropActive] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState("")
+  const [textBoxes, setTextBoxes] = useState<Array<{ id: number; text: string }>>([])
+  const [highlightMode, setHighlightMode] = useState(false)
+  const [saved, setSaved] = useState(false)
   const { activeModel } = useSuite()
 
   const openFile = (file?: File) => {
@@ -65,6 +70,19 @@ export function PdfApp() {
     window.print()
   }
 
+  const addTextBox = () => {
+    if (!editText.trim()) return
+    setTextBoxes((items) => [...items, { id: Date.now(), text: editText.trim() }])
+    setEditText("")
+  }
+
+  const saveEdits = () => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1800)
+  }
+
+  const editablePage = !fileUrl
+
   return (
     <section className="flex h-full min-h-0 flex-col bg-[#151516]">
       <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => openFile(event.target.files?.[0])} />
@@ -80,6 +98,7 @@ export function PdfApp() {
         <div className="flex items-center gap-2">
           <span className="hidden text-[11px] text-muted-foreground md:inline">AI: {activeModel === "openai" ? "ChatGPT" : activeModel === "anthropic" ? "Claude" : activeModel === "google" ? "Gemini" : "Grok"}</span>
           <button onClick={() => inputRef.current?.click()} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"><FolderOpen className="size-3.5" /> Open PDF</button>
+          <button onClick={() => setIsEditing((value) => !value)} className={cn("flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors", isEditing ? "border-primary/50 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent hover:text-foreground")}><FileText className="size-3.5" /> {isEditing ? "Exit editor" : "Edit PDF"}</button>
           <button onClick={downloadCopy} className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"><Download className="size-3.5" /> Download</button>
         </div>
       </header>
@@ -103,9 +122,19 @@ export function PdfApp() {
             <div className="flex min-w-0 items-center gap-2"><span className="truncate text-xs text-muted-foreground">{fileName}</span>{fileUrl && <span className="rounded bg-emerald-400/10 px-1.5 py-0.5 text-[10px] text-emerald-300">Imported</span>}</div>
             <div className="flex items-center gap-1"><button className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-accent" aria-label="Print PDF" onClick={() => window.print()}><Printer className="size-3.5" /></button><span className="mx-1 h-4 w-px bg-border" /><button className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-accent" onClick={() => setZoom((z) => Math.max(60, z - 10))}><Minus className="size-3.5" /></button><span className="w-10 text-center text-[11px] text-muted-foreground">{zoom}%</span><button className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-accent" onClick={() => setZoom((z) => Math.min(180, z + 10))}><Plus className="size-3.5" /></button></div>
           </div>
+          {isEditing && (
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-primary/20 bg-primary/5 px-4 py-2">
+              <span className="text-[11px] font-medium text-primary">Edit mode</span>
+              <span className="hidden text-[11px] text-muted-foreground sm:inline">{editablePage ? "Click text to edit, or add an overlay." : "Imported PDFs are preserved; add safe annotations on top."}</span>
+              <input value={editText} onChange={(event) => setEditText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addTextBox() }} placeholder="Text to add…" className="ml-auto w-36 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-primary" />
+              <button onClick={addTextBox} className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground">Add text</button>
+              <button onClick={() => setHighlightMode((value) => !value)} className={cn("rounded-md border px-2.5 py-1.5 text-xs", highlightMode ? "border-amber-300/50 bg-amber-300/10 text-amber-200" : "border-border text-muted-foreground hover:bg-accent")}>Highlight</button>
+              <button onClick={saveEdits} className="rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent">{saved ? "Saved" : "Save edits"}</button>
+            </div>
+          )}
           <div className="scroll-thin flex min-h-0 flex-1 items-start justify-center overflow-auto p-6 md:p-10" onDragOver={(event) => { event.preventDefault(); setIsDropActive(true) }} onDragLeave={() => setIsDropActive(false)} onDrop={(event) => { event.preventDefault(); setIsDropActive(false); openFile(event.dataTransfer.files[0]) }}>
             {isDropActive && <div className="absolute inset-5 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10 text-sm font-medium text-primary">Drop a PDF to open it safely</div>}
-            {fileUrl ? <iframe title={`Preview of ${fileName}`} src={fileUrl} className="h-full min-h-[620px] w-full max-w-4xl rounded-lg bg-white shadow-2xl" /> : <div className="w-full max-w-[680px] rounded-sm bg-[#fcfcfa] px-12 py-16 text-[#242424] shadow-2xl" style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}><div className="mb-10 flex items-center justify-between border-b border-[#deded9] pb-5 text-[10px] uppercase tracking-[0.2em] text-[#8c8c86]"><span>notjustanoffice</span><span>{page + 1} / {SAMPLE_PAGES.length}</span></div><h2 className="mb-3 text-4xl font-semibold tracking-tight">{SAMPLE_PAGES[page].lines[0]}</h2><p className="mb-10 text-lg text-[#666660]">{SAMPLE_PAGES[page].lines[1]}</p><div className="flex flex-col gap-4 text-sm leading-7 text-[#474741]">{SAMPLE_PAGES[page].lines.slice(2).map((line) => <p key={line}>{line}</p>)}<div className="mt-12 h-28 rounded bg-[#f0f0ec]" /><div className="h-2 w-4/5 rounded bg-[#e4e4df]" /><div className="h-2 w-3/5 rounded bg-[#e4e4df]" /></div></div>}
+            {fileUrl ? <iframe title={`Preview of ${fileName}`} src={fileUrl} className="h-full min-h-[620px] w-full max-w-4xl rounded-lg bg-white shadow-2xl" /> : <div className="w-full max-w-[680px] rounded-sm bg-[#fcfcfa] px-12 py-16 text-[#242424] shadow-2xl" style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}><div className="mb-10 flex items-center justify-between border-b border-[#deded9] pb-5 text-[10px] uppercase tracking-[0.2em] text-[#8c8c86]"><span>notjustanoffice</span><span>{page + 1} / {SAMPLE_PAGES.length}</span></div><h2 contentEditable={isEditing && editablePage} suppressContentEditableWarning className={cn("mb-3 text-4xl font-semibold tracking-tight outline-none", isEditing && editablePage && "rounded px-1 ring-1 ring-primary/30 focus:ring-primary")}>{SAMPLE_PAGES[page].lines[0]}</h2><p contentEditable={isEditing && editablePage} suppressContentEditableWarning className={cn("mb-10 text-lg text-[#666660] outline-none", isEditing && editablePage && "rounded px-1 ring-1 ring-primary/30 focus:ring-primary")}>{SAMPLE_PAGES[page].lines[1]}</p><div className="flex flex-col gap-4 text-sm leading-7 text-[#474741]">{SAMPLE_PAGES[page].lines.slice(2).map((line) => <p key={line} contentEditable={isEditing && editablePage} suppressContentEditableWarning className={cn("outline-none", isEditing && editablePage && "rounded px-1 ring-1 ring-primary/30 focus:ring-primary")}>{line}</p>)}{textBoxes.map((box) => <p key={box.id} contentEditable={isEditing} suppressContentEditableWarning className="rounded bg-amber-200/60 px-2 py-1 text-[#252525] outline-none">{box.text}</p>)}<div className="mt-12 h-28 rounded bg-[#f0f0ec]" /><div className="h-2 w-4/5 rounded bg-[#e4e4df]" /><div className="h-2 w-3/5 rounded bg-[#e4e4df]" /></div></div>}
           </div>
           <div className="flex h-11 shrink-0 items-center justify-center gap-3 border-t border-border/70"><button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-30"><ChevronLeft className="size-3.5" /> Previous</button><span className="text-[11px] text-muted-foreground">Page {page + 1} of {SAMPLE_PAGES.length}</span><button disabled={page === SAMPLE_PAGES.length - 1} onClick={() => setPage((p) => p + 1)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-30">Next <ChevronRight className="size-3.5" /></button></div>
         </main>
