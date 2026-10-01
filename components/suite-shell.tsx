@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { FileText, Table2, Presentation, LayoutGrid, Settings, Sparkles, Code2, CalendarDays, FileKey2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { FileText, Table2, Presentation, LayoutGrid, Settings, Sparkles, Code2, CalendarDays, FileKey2, AlertTriangle } from "lucide-react"
 import { useSuite, type AppKey } from "@/components/suite-context"
 import { ModelSelector } from "@/components/model-selector"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -20,6 +20,17 @@ const NAV: { key: AppKey; label: string; sub: string; icon: typeof FileText; col
 export function SuiteShell({ children }: { children: React.ReactNode }) {
   const { activeApp, setActiveApp } = useSuite()
   const [showSettings, setShowSettings] = useState(false)
+  const [showProductNotice, setShowProductNotice] = useState(false)
+
+  useEffect(() => {
+    const hasSeenNotice = document.cookie.split("; ").some((cookie) => cookie.startsWith("notjustanoffice-product-notice="))
+    if (!hasSeenNotice) setShowProductNotice(true)
+  }, [])
+
+  const dismissProductNotice = () => {
+    document.cookie = "notjustanoffice-product-notice=seen; Max-Age=31536000; Path=/; SameSite=Lax"
+    setShowProductNotice(false)
+  }
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
@@ -89,6 +100,24 @@ export function SuiteShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
+
+      {showProductNotice && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="product-notice-title">
+          <div className="w-full max-w-md rounded-2xl border border-amber-400/30 bg-card p-6 shadow-2xl">
+            <div className="flex items-start gap-4">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-400/15 text-amber-300">
+                <AlertTriangle className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="product-notice-title" className="text-lg font-semibold">Important product notice</h2>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">notjustanoffice is an independent productivity product. It is not made by, affiliated with, endorsed by, or sponsored by Microsoft, Microsoft 365, Office, Word, Excel, or PowerPoint.</p>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground/80">Product names are used only to describe compatible workflows and comparisons.</p>
+              </div>
+            </div>
+            <button onClick={dismissProductNotice} autoFocus className="mt-6 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">I understand</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
