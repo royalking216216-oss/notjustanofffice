@@ -1,6 +1,6 @@
 "use client"
 
-import { FileText, Table2, Presentation, ArrowRight, Sparkles } from "lucide-react"
+import { FileText, Table2, Presentation, ArrowRight, Sparkles, FileKey2, CalendarDays, Code2, Zap, ShieldCheck } from "lucide-react"
 import { useSuite, type AppKey } from "@/components/suite-context"
 import { MODELS } from "@/lib/ai-service"
 
@@ -36,6 +36,30 @@ const CARDS: {
     color: "#fbbc04",
     copilot: "Slide Copilot",
   },
+  {
+    key: "pdf",
+    title: "notjustanpdf",
+    desc: "Review, annotate, and safely edit PDFs with a focused document workspace.",
+    icon: FileKey2,
+    color: "#fb7185",
+    copilot: "PDF workspace",
+  },
+  {
+    key: "project",
+    title: "Project Premium Pro",
+    desc: "Turn a brief into milestones, owners, dependencies, and a clear delivery plan.",
+    icon: CalendarDays,
+    color: "#a78bfa",
+    copilot: "AI Planner",
+  },
+  {
+    key: "code",
+    title: "notjustacode",
+    desc: "Build HTML, CSS, and JavaScript with a live preview and export-ready output.",
+    icon: Code2,
+    color: "#67e8f9",
+    copilot: "Code assistant",
+  },
 ]
 
 export function HomeDashboard() {
@@ -63,7 +87,14 @@ export function HomeDashboard() {
           Claude, Gemini and Grok globally — your documents, sheets and decks all share the same engine.
         </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="col-span-full flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary"><Zap className="size-4" /></span>
+              <div><p className="text-sm font-medium">Start with a workspace</p><p className="text-xs text-muted-foreground">Your work stays in one shared suite.</p></div>
+            </div>
+            <span className="flex items-center gap-1.5 text-xs text-emerald-300"><ShieldCheck className="size-3.5" /> Private by default</span>
+          </div>
           {CARDS.map((c) => {
             const Icon = c.icon
             return (
@@ -90,7 +121,14 @@ export function HomeDashboard() {
           })}
         </div>
 
-        <div className="mt-10 grid gap-3 rounded-2xl border border-border bg-card/50 p-5 sm:grid-cols-4">
+        <div className="mt-8 rounded-2xl border border-border bg-card/50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-sm font-semibold">Suite at a glance</h2><p className="mt-1 text-xs text-muted-foreground">Six focused workspaces, one active AI engine.</p></div><span className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground">{CARDS.length} workspaces</span></div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {[{ label: "Create", value: "Documents, sheets, decks", key: "word" as AppKey }, { label: "Plan", value: "Tasks and milestones", key: "project" as AppKey }, { label: "Build", value: "Code and live preview", key: "code" as AppKey }].map((item) => <button key={item.label} onClick={() => setActiveApp(item.key)} className="rounded-xl border border-border/70 bg-background/40 p-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-medium text-primary">{item.label}</p><p className="mt-1 text-sm">{item.value}</p><p className="mt-2 text-[11px] text-muted-foreground">Open workspace <ArrowRight className="ml-1 inline size-3" /></p></button>)}
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3 rounded-2xl border border-border bg-card/50 p-5 sm:grid-cols-4">
           {Object.values(MODELS).map((model) => (
             <div key={model.id} className="flex items-center gap-2.5">
               <span className="size-2.5 rounded-full" style={{ background: model.accent }} />

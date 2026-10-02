@@ -66,6 +66,8 @@ export function SuiteShell({ children }: { children: React.ReactNode }) {
             return (
               <button
                 key={item.key}
+                title={`${item.label} — ${item.sub}`}
+                aria-current={active ? "page" : undefined}
                 onClick={() => setActiveApp(item.key)}
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-0 py-2.5 transition-colors lg:px-3",
