@@ -55,7 +55,7 @@ interface SuiteState {
   setActiveSlide: (i: number) => void
   updateSlide: (i: number, patch: Partial<Slide>) => void
 
-  // ── Project Premium Pro ──
+  // ── notjustanplan premium pro ──
   projectTasks: ProjectTask[]
   setProjectTasks: (tasks: ProjectTask[]) => void
   updateProjectTask: (id: string, patch: Partial<ProjectTask>) => void

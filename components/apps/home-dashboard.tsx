@@ -46,7 +46,7 @@ const CARDS: {
   },
   {
     key: "project",
-    title: "Project Premium Pro",
+    title: "notjustanplan premium pro",
     desc: "Turn a brief into milestones, owners, dependencies, and a clear delivery plan.",
     icon: CalendarDays,
     color: "#a78bfa",
