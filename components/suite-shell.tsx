@@ -14,7 +14,7 @@ const NAV: { key: AppKey; label: string; sub: string; icon: typeof FileText; col
   { key: "slide", label: "notjustaslide", sub: "PowerPoint", icon: Presentation, color: "#fbbc04" },
   { key: "pdf", label: "notjustanpdf", sub: "PDF workspace", icon: FileKey2, color: "#fb7185" },
   { key: "visio", label: "notjustanvisio", sub: "Diagrams + vectors", icon: Workflow, color: "#5eead4" },
-  { key: "project", label: "Project Premium Pro", sub: "Planning", icon: CalendarDays, color: "#a78bfa" },
+  { key: "project", label: "notjustanplan premium pro", sub: "Planning", icon: CalendarDays, color: "#a78bfa" },
   { key: "code", label: "notjustacode", sub: "HTML + Preview", icon: Code2, color: "#67e8f9" },
 ]
 

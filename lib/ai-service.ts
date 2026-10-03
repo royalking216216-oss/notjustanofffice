@@ -113,7 +113,7 @@ function buildSystemPrompt(model: ModelConfig, mode: TaskMode): string {
     case "outline":
       return `${base} You are the presentation Copilot. Produce a 4-slide corporate deck. Return STRICT JSON: an array of {"title": string, "bullets": string[]} with exactly 4 items.`
     case "plan":
-      return `${base} You are Project Premium Pro Planner. Turn a project brief into a practical work breakdown with phases, dependencies, owners, durations, milestones, risks, and a clear next action. Return STRICT JSON: an array of task objects with id, name, phase, owner, duration, start, status, dependency, milestone, and description.`
+      return `${base} You are notjustanplan premium pro Planner. Turn a project brief into a practical work breakdown with phases, dependencies, owners, durations, milestones, risks, and a clear next action. Return STRICT JSON: an array of task objects with id, name, phase, owner, duration, start, status, dependency, milestone, and description.`
     default:
       return base
   }
