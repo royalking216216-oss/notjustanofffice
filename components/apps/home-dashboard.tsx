@@ -1,6 +1,6 @@
 "use client"
 
-import { FileText, Table2, Presentation, ArrowRight, Sparkles, FileKey2, CalendarDays, Code2, Zap, ShieldCheck } from "lucide-react"
+import { FileText, Table2, Presentation, ArrowRight, Sparkles, FileKey2, CalendarDays, Code2, Zap, ShieldCheck, Workflow } from "lucide-react"
 import { useSuite, type AppKey } from "@/components/suite-context"
 import { MODELS } from "@/lib/ai-service"
 
@@ -59,6 +59,14 @@ const CARDS: {
     icon: Code2,
     color: "#67e8f9",
     copilot: "Code assistant",
+  },
+  {
+    key: "visio",
+    title: "notjustanvisio",
+    desc: "Map systems, processes, spaces, and complex ideas with editable vector diagrams.",
+    icon: Workflow,
+    color: "#5eead4",
+    copilot: "Diagram workspace",
   },
 ]
 

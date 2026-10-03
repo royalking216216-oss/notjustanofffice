@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FileText, Table2, Presentation, LayoutGrid, Settings, Sparkles, Code2, CalendarDays, FileKey2, AlertTriangle } from "lucide-react"
+import { FileText, Table2, Presentation, LayoutGrid, Settings, Sparkles, Code2, CalendarDays, FileKey2, AlertTriangle, Workflow } from "lucide-react"
 import { useSuite, type AppKey } from "@/components/suite-context"
 import { ModelSelector } from "@/components/model-selector"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -13,6 +13,7 @@ const NAV: { key: AppKey; label: string; sub: string; icon: typeof FileText; col
   { key: "sheet", label: "notjustasheet", sub: "Spreadsheets", icon: Table2, color: "#34a853" },
   { key: "slide", label: "notjustaslide", sub: "PowerPoint", icon: Presentation, color: "#fbbc04" },
   { key: "pdf", label: "notjustanpdf", sub: "PDF workspace", icon: FileKey2, color: "#fb7185" },
+  { key: "visio", label: "notjustanvisio", sub: "Diagrams + vectors", icon: Workflow, color: "#5eead4" },
   { key: "project", label: "Project Premium Pro", sub: "Planning", icon: CalendarDays, color: "#a78bfa" },
   { key: "code", label: "notjustacode", sub: "HTML + Preview", icon: Code2, color: "#67e8f9" },
 ]
