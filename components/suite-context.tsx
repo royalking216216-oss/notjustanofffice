@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { type ModelId, type ApiKeys, EMPTY_KEYS, MODELS } from "@/lib/ai-service"
 
-export type AppKey = "home" | "word" | "sheet" | "slide" | "pdf" | "code" | "project"
+export type AppKey = "home" | "word" | "sheet" | "slide" | "pdf" | "visio" | "code" | "project"
 
 export interface ProjectTask {
   id: string
