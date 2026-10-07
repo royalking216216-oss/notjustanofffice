@@ -6,7 +6,7 @@ import { useSuite } from "@/components/suite-context"
 import { MODELS, streamMessage } from "@/lib/ai-service"
 import { cn } from "@/lib/utils"
 
-type PreviewKind = "web" | "react" | "markdown" | "data" | "svg" | "canvas" | "three" | "python" | "sql" | "api" | "console"
+type PreviewKind = "web" | "react" | "markdown" | "data" | "svg" | "canvas" | "three" | "python" | "typescript" | "csharp" | "cpp" | "sql" | "java" | "kotlin" | "swift" | "c" | "rust" | "go" | "api" | "console"
 type Device = "phone" | "tablet" | "desktop"
 
 const starter = `<!doctype html>\n<html lang="en">\n  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>notjustacode preview</title>\n  <style>body{font-family:system-ui;margin:0;padding:48px;background:#111827;color:#f9fafb}.card{max-width:560px;margin:auto;padding:32px;border:1px solid #374151;border-radius:20px;background:#1f2937}button{border:0;border-radius:10px;padding:10px 14px;background:#67e8f9;color:#082f49;font-weight:700;cursor:pointer}</style></head>\n  <body><main class="card"><p>notjustacode</p><h1>Build in the browser.</h1><p>Edit the HTML and watch the preview update.</p><button onclick="this.textContent='It works.'">Test interaction</button></main></body>\n</html>`
@@ -38,7 +38,7 @@ function runPythonPreview(source: string) {
 }
 
 const modes: Array<{ id: PreviewKind; label: string }> = [
-  { id: "web", label: "HTML / CSS / JS" }, { id: "react", label: "React" }, { id: "markdown", label: "Markdown" }, { id: "data", label: "JSON / XML / YAML" }, { id: "svg", label: "SVG / Icons" }, { id: "canvas", label: "Canvas / WebGL" }, { id: "three", label: "Three.js 3D" }, { id: "python", label: "Python output" }, { id: "sql", label: "SQL results" }, { id: "api", label: "API response" }, { id: "console", label: "Console / errors" },
+  { id: "web", label: "HTML / CSS / JS" }, { id: "react", label: "React" }, { id: "markdown", label: "Markdown" }, { id: "data", label: "JSON / XML / YAML" }, { id: "svg", label: "SVG / Icons" }, { id: "canvas", label: "Canvas / WebGL" }, { id: "three", label: "Three.js 3D" }, { id: "python", label: "Python" }, { id: "typescript", label: "TypeScript" }, { id: "csharp", label: "C#" }, { id: "cpp", label: "C++" }, { id: "sql", label: "SQL" }, { id: "java", label: "Java" }, { id: "kotlin", label: "Kotlin" }, { id: "swift", label: "Swift" }, { id: "c", label: "C" }, { id: "rust", label: "Rust" }, { id: "go", label: "Go / Golang" }, { id: "api", label: "API response" }, { id: "console", label: "Console / errors" },
 ]
 
 const samples: Record<PreviewKind, string> = {
@@ -50,7 +50,16 @@ const samples: Record<PreviewKind, string> = {
   canvas: `const canvas = document.querySelector("canvas");\nconst ctx = canvas.getContext("2d");\nctx.fillStyle = "#082f49"; ctx.fillRect(0, 0, 480, 260);\nctx.fillStyle = "#67e8f9"; ctx.beginPath(); ctx.arc(240, 130, 72, 0, Math.PI * 2); ctx.fill();`,
   three: `// Three.js scene preview\nconst scene = new THREE.Scene();\nconst camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);\nconst geometry = new THREE.BoxGeometry();\nconst material = new THREE.MeshStandardMaterial({ color: 0x67e8f9 });\nscene.add(new THREE.Mesh(geometry, material));`,
   python: `# Python output preview\nitems = ["word", "sheet", "slide", "pdf"]\nprint("Loaded", len(items), "workspaces")\nprint("Ready")`,
+  typescript: `type Workspace = { name: string; status: "active" | "draft" }\n\nconst workspaces: Workspace[] = [{ name: "notjustacode", status: "active" }]\nconsole.log(workspaces)`,
+  csharp: `using System;\n\nclass Program {\n  static void Main() => Console.WriteLine("Hello from C#");\n}`,
+  cpp: `#include <iostream>\n\nint main() {\n  std::cout << "Hello from C++";\n  return 0;\n}`,
   sql: `SELECT workspace, status, owner\nFROM projects\nWHERE status = 'active'\nORDER BY workspace;`,
+  java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from Java");\n  }\n}`,
+  kotlin: `fun main() {\n  println("Hello from Kotlin")\n}`,
+  swift: `import Foundation\n\nlet message = "Hello from Swift"\nprint(message)`,
+  c: `#include <stdio.h>\n\nint main(void) {\n  printf("Hello from C\\n");\n  return 0;\n}`,
+  rust: `fn main() {\n    println!("Hello from Rust");\n}`,
+  go: `package main\n\nimport "fmt"\n\nfunc main() {\n  fmt.Println("Hello from Go")\n}`,
   api: `HTTP/1.1 200 OK\\ncontent-type: application/json\\n\\n{"ok":true,"message":"Preview response","latency_ms":42}`,
   console: `INFO  Preview started
 INFO  Hot reload complete
