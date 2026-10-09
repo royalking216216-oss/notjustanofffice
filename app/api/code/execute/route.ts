@@ -17,8 +17,7 @@ const ALLOWED = new Set(["javascript", "python"])
 type RequestBody = { language?: string; code?: string }
 
 function cap(value: string) {
-  return value.length > MAX_OUTPUT ? `${value.slice(0, MAX_OUTPUT)}
-[output truncated]` : value
+  return value.length > MAX_OUTPUT ? `${value.slice(0, MAX_OUTPUT)}\n[output truncated]` : value
 }
 
 async function runPython(code: string) {
@@ -29,7 +28,7 @@ async function runPython(code: string) {
       timeout: TIMEOUT_MS,
       maxBuffer: MAX_OUTPUT,
       windowsHide: true,
-      env: { PATH: process.env.PATH ?? "/usr/bin:/bin", PYTHONIOENCODING: "utf-8" },
+      env: { ...process.env, PATH: process.env.PATH ?? "/usr/bin:/bin", PYTHONIOENCODING: "utf-8" },
     })
     return { stdout: cap(result.stdout), stderr: cap(result.stderr) }
   } finally {
@@ -45,11 +44,9 @@ function runJavaScript(code: string) {
   try {
     new vm.Script(`"use strict";
 ${code}`).runInContext(context, { timeout: TIMEOUT_MS })
-    return { stdout: cap(output.join("
-")), stderr: "" }
+    return { stdout: cap(output.join("\n")), stderr: "" }
   } catch (error) {
-    return { stdout: cap(output.join("
-")), stderr: error instanceof Error ? error.message : String(error) }
+    return { stdout: cap(output.join("\n")), stderr: error instanceof Error ? error.message : String(error) }
   }
 }
 
